@@ -86,6 +86,7 @@ export function apply(ctx: ClientContext): void {
   )
   const llmFallback = new LlmFallbackCardController(
     ctx.settingsScope.bind({ namespace: LLM_FALLBACK_NS }),
+    ctx,
   )
 
   // The credential a card reports is not part of any settings section, so its
