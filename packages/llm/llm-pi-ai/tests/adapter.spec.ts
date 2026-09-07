@@ -70,6 +70,10 @@ beforeEach(() => {
   // Configuration carries only the reference; these mounts resolve it from
   // the environment, which is the whole credential plane without a seam.
   vi.stubEnv('PI_TEST_KEY', 'test-key')
+  // Isolate all adapter constructions from the real ~/.dsh/llm-pi-ai/token-limits.json
+  // written by live sessions; point DSH_HOME at a path that never exists so
+  // TokenLimitStore.load() returns an empty map for every test.
+  vi.stubEnv('DSH_HOME', '/nonexistent-test-dsh-home')
 })
 
 describe('PiAiAdapter provider routing', () => {

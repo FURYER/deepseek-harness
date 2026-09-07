@@ -73,6 +73,8 @@ import { registerPiAiFlows } from './login.ts'
 
 export { PiAiAdapter } from './adapter.ts'
 export type { PiAiAdapterOptions } from './adapter.ts'
+export { defaultTokenLimitsPath, TokenLimitStore } from './token-limit-store.ts'
+export type { StoredTokenLimits, TokenLimitStoreOptions } from './token-limit-store.ts'
 export { Config } from './config.ts'
 export type {
   PiAiCompatProfile,
@@ -210,6 +212,9 @@ export function apply(ctx: Context, config: Config): void {
         `llm-pi-ai: unusable replay state on assistant history for route "${provider}/${model}";`
         + ` sending that message as provider-neutral content (${reason})`,
       )
+    },
+    onTokenLimitError: (error) => {
+      ctx.logger.warn('llm-pi-ai: failed to persist learned token limits to disk', error)
     },
   })
   // Independent of the route set: signing in is what makes a route worth

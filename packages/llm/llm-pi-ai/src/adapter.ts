@@ -61,6 +61,7 @@ import { idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import type { ResolvedPiAiProviderProfile } from './config.ts'
 import { toPiContext } from './context.ts'
 import { parseProviderTokenLimit, toStreamChunks } from './stream.ts'
+import { TokenLimitStore } from './token-limit-store.ts'
 
 /** One resolution's frozen view: the profiles and the collection built from them. */
 interface PiAiSnapshot {
@@ -101,6 +102,10 @@ export interface PiAiAdapterOptions {
    * conversion because its stored replay state is unusable by this build.
    */
   onReplayDegrade?: (detail: { provider: string; model: string; reason: string }) => void
+  /** Explicit token limits file path, or false to disable disk persistence. */
+  tokenLimitsPath?: string | false | undefined
+  /** Optional callback for token limit persistence failures. */
+  onTokenLimitError?: ((error: unknown) => void) | undefined
 }
 
 /** The two auth injectables a pi-ai collection is built with. */
@@ -218,14 +223,28 @@ function requestHeaders(headers: Readonly<Record<string, string>> | undefined): 
  */
 export class PiAiAdapter extends LlmAdapter {
   private snapshot: PiAiSnapshot | undefined
+  private readonly tokenLimitStore: TokenLimitStore
   /**
    * Learned token limits reported by providers (e.g. Google free-tier token quota limits).
    * Keyed by `${provider}/${model}`.
    */
-  private readonly dynamicLimits = new Map<string, number>()
+  private readonly dynamicLimits: Map<string, number>
 
   constructor(private readonly config: PiAiAdapterOptions) {
     super()
+    this.tokenLimitStore = new TokenLimitStore({
+      path: config.tokenLimitsPath,
+      onError: config.onTokenLimitError,
+    })
+    this.dynamicLimits = this.tokenLimitStore.load()
+  }
+
+  private recordDynamicLimit(provider: string, model: string, limit: number): void {
+    const key = `${provider}/${model}`
+    const previous = this.dynamicLimits.get(key)
+    if (previous === limit) return
+    this.dynamicLimits.set(key, limit)
+    void this.tokenLimitStore.save(this.dynamicLimits)
   }
 
   /**
@@ -405,7 +424,7 @@ export class PiAiAdapter extends LlmAdapter {
           if (result.value.type === 'finish' && result.value.reason.kind === 'error') {
             const limit = parseProviderTokenLimit(result.value.reason.failure.message)
             if (limit !== undefined) {
-              this.dynamicLimits.set(`${options.provider}/${options.model}`, limit)
+              this.recordDynamicLimit(options.provider, options.model, limit)
             }
           }
           yield result.value
@@ -424,7 +443,7 @@ export class PiAiAdapter extends LlmAdapter {
       if (error instanceof Error) {
         const limit = parseProviderTokenLimit(error.message)
         if (limit !== undefined) {
-          this.dynamicLimits.set(`${options.provider}/${options.model}`, limit)
+          this.recordDynamicLimit(options.provider, options.model, limit)
         }
       }
       if (timeoutOf(watchdog.signal, 'LLM_STREAM_IDLE_TIMEOUT') !== undefined) {
