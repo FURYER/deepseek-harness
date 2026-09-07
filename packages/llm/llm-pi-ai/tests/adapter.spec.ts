@@ -1039,4 +1039,23 @@ describe('abort wiring', () => {
     await new Promise(resolve => setTimeout(resolve, 20))
     expect(server.requests).toHaveLength(1)
   })
+
+  it('dynamically adapts model context window when provider reports token quota limit', async () => {
+    const errorMessage = 'Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000, model: deepseek-v4-flash. Please retry in 35s.'
+    const server = await mockServer([
+      { status: 429, body: JSON.stringify({ error: { message: errorMessage } }) },
+    ])
+    const ctx = await harness(server.url)
+    const before = await ctx.llm.resolveModelInfo('deepseek', 'deepseek-v4-flash')
+    expect(before.context?.contextWindow).toBeGreaterThan(250000)
+
+    const result = await assemble(ctx, { model: 'deepseek-v4-flash', messages: [] })
+    expect(result.finish).toMatchObject({
+      kind: 'error',
+      failure: { code: 'RATE_LIMIT' },
+    })
+
+    const after = await ctx.llm.resolveModelInfo('deepseek', 'deepseek-v4-flash')
+    expect(after.context?.contextWindow).toBe(250000)
+  })
 })

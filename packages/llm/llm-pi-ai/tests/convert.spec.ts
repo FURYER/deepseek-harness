@@ -6,7 +6,7 @@ import type { ContentBlock, StreamChunk } from '@deepseek-ai/dsh-llm'
 import type { AssistantMessage, AssistantMessageEvent, Usage } from '@earendil-works/pi-ai'
 import { toPiContext } from '../src/context.ts'
 import { toPiReplayState } from '../src/replay.ts'
-import { mapStopReason, mapUsage, toStreamChunks } from '../src/stream.ts'
+import { mapStopReason, mapUsage, parseProviderRetryAfterMs, parseProviderTokenLimit, toStreamChunks } from '../src/stream.ts'
 
 function usage(input = 0, output = 0, cacheRead = 0, cacheWrite = 0): Usage {
   return {
@@ -834,6 +834,49 @@ describe('mapStopReason / mapUsage', () => {
       stopReason: 'error',
       errorMessage: 'vector length limit exceeded',
     }))).toMatchObject({ kind: 'error', failure: { code: 'PI_AI_ERROR' } })
+
+    const googleQuotaWithDelay = JSON.stringify({
+      error: {
+        code: 429,
+        message: 'You exceeded your current quota, please check your plan and billing details.\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000, model: gemini-2.5-flash\nPlease retry in 35.543103362s.',
+        status: 'RESOURCE_EXHAUSTED',
+      },
+    })
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: googleQuotaWithDelay }))).toEqual({
+      kind: 'error',
+      failure: {
+        message: googleQuotaWithDelay,
+        code: 'RATE_LIMIT',
+        providerRetryAfterMs: 35544,
+      },
+    })
+
+    const googleRetryInfo = JSON.stringify({
+      error: {
+        code: 429,
+        message: 'Resource has been exhausted',
+        details: [{ '@type': 'type.googleapis.com/google.rpc.RetryInfo', retryDelay: '12s' }],
+      },
+    })
+    expect(mapStopReason(assistant({ stopReason: 'error', errorMessage: googleRetryInfo }))).toEqual({
+      kind: 'error',
+      failure: {
+        message: googleRetryInfo,
+        code: 'RATE_LIMIT',
+        providerRetryAfterMs: 12000,
+      },
+    })
+
+    expect(parseProviderRetryAfterMs('Please retry in 35.543103362s.')).toBe(35544)
+    expect(parseProviderRetryAfterMs('{"retryDelay": "12s"}')).toBe(12000)
+    expect(parseProviderRetryAfterMs('{"retryDelay": "0.5s"}')).toBe(500)
+    expect(parseProviderRetryAfterMs('plain rate limit with no delay')).toBeUndefined()
+
+    const geminiQuotaMsg = 'Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000, model: gemini-3.5-flash-lite\\nPlease retry in 35.543103362s.'
+    expect(parseProviderTokenLimit(geminiQuotaMsg)).toBe(250000)
+    expect(parseProviderTokenLimit('Limit: 1000000 tokens exceeded')).toBe(1000000)
+    expect(parseProviderTokenLimit('Quota exceeded: limit: 50000 token_count')).toBe(50000)
+    expect(parseProviderTokenLimit('random error without token limit')).toBeUndefined()
   })
 
   it.each([

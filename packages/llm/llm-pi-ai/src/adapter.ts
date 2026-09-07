@@ -60,7 +60,7 @@ import type { AttachmentStore, ImageAttachmentRef } from '@deepseek-ai/dsh-attac
 import { idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import type { ResolvedPiAiProviderProfile } from './config.ts'
 import { toPiContext } from './context.ts'
-import { toStreamChunks } from './stream.ts'
+import { parseProviderTokenLimit, toStreamChunks } from './stream.ts'
 
 /** One resolution's frozen view: the profiles and the collection built from them. */
 interface PiAiSnapshot {
@@ -218,6 +218,11 @@ function requestHeaders(headers: Readonly<Record<string, string>> | undefined): 
  */
 export class PiAiAdapter extends LlmAdapter {
   private snapshot: PiAiSnapshot | undefined
+  /**
+   * Learned token limits reported by providers (e.g. Google free-tier token quota limits).
+   * Keyed by `${provider}/${model}`.
+   */
+  private readonly dynamicLimits = new Map<string, number>()
 
   constructor(private readonly config: PiAiAdapterOptions) {
     super()
@@ -299,12 +304,16 @@ export class PiAiAdapter extends LlmAdapter {
     // Only a cap the deployment configured is a request default; the
     // catalog's `maxTokens` sizes the model and stops there.
     const configuredMaxTokens = profile.configuredMaxTokens.get(model)
+    const dynamicLimit = this.dynamicLimits.get(`${provider}/${model}`)
+    const contextWindow = dynamicLimit !== undefined
+      ? Math.min(dynamicLimit, resolvedModel.contextWindow)
+      : resolvedModel.contextWindow
     return {
       provider,
       id: model,
       name: resolvedModel.name,
       inputModalities: [...resolvedModel.input],
-      context: { contextWindow: resolvedModel.contextWindow },
+      context: { contextWindow },
       ...configuredMaxTokens === undefined ? {} : { defaultMaxTokens: configuredMaxTokens },
       ...reasoningInfo(resolvedModel, defaultLevel),
     }
@@ -393,6 +402,12 @@ export class PiAiAdapter extends LlmAdapter {
             exhausted = true
             return
           }
+          if (result.value.type === 'finish' && result.value.reason.kind === 'error') {
+            const limit = parseProviderTokenLimit(result.value.reason.failure.message)
+            if (limit !== undefined) {
+              this.dynamicLimits.set(`${options.provider}/${options.model}`, limit)
+            }
+          }
           yield result.value
         }
       } finally {
@@ -406,6 +421,12 @@ export class PiAiAdapter extends LlmAdapter {
         }
       }
     } catch (error: unknown) {
+      if (error instanceof Error) {
+        const limit = parseProviderTokenLimit(error.message)
+        if (limit !== undefined) {
+          this.dynamicLimits.set(`${options.provider}/${options.model}`, limit)
+        }
+      }
       if (timeoutOf(watchdog.signal, 'LLM_STREAM_IDLE_TIMEOUT') !== undefined) {
         throw new LlmError(`pi-ai stream idle timeout after ${streamIdleTimeoutMs}ms`, 'TIMEOUT', { cause: error })
       }

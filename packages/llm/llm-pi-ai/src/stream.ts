@@ -31,6 +31,43 @@ export function mapUsage(usage: PiUsage): TokenUsage {
   }
 }
 
+// Pattern matching provider-requested retry delay (e.g., Google/Gemini quota messages
+// like "Please retry in 35.543103362s." or '{"retryDelay": "35s"}').
+const RETRY_AFTER_TEXT = /(?:please retry in|retry in|retry after)\s+(\d+(?:\.\d+)?)\s*s\b/i
+const RETRY_AFTER_JSON = /"retryDelay":\s*"(\d+(?:\.\d+)?)s?"/i
+
+/**
+ * Extract provider-requested retry delay in milliseconds from an error message, if present.
+ * @param message - provider error message.
+ * @returns delay in milliseconds rounded up, or undefined if no valid positive delay is found.
+ */
+export function parseProviderRetryAfterMs(message: string): number | undefined {
+  const match = RETRY_AFTER_TEXT.exec(message) ?? RETRY_AFTER_JSON.exec(message)
+  if (match?.[1] === undefined) return undefined
+  const seconds = Number.parseFloat(match[1])
+  if (!Number.isFinite(seconds) || seconds <= 0) return undefined
+  return Math.ceil(seconds * 1000)
+}
+
+// Pattern matching provider-reported token quota limits (e.g. Google/Gemini messages like
+// "Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 250000, model: ...")
+const TOKEN_LIMIT_PATTERN =
+  /(?:input_token_count|tokens?|token_count)[^]*?\blimit:\s*(\d+)\b|\blimit:\s*(\d+)\b[^]*?(?:input_token_count|tokens?|token_count)/i
+
+/**
+ * Extract provider-reported input/request token quota limit from an error message, if present.
+ * @param message - provider error message.
+ * @returns token limit, or undefined if no valid positive token limit is found.
+ */
+export function parseProviderTokenLimit(message: string): number | undefined {
+  const match = TOKEN_LIMIT_PATTERN.exec(message)
+  const raw = match?.[1] ?? match?.[2]
+  if (raw === undefined) return undefined
+  const limit = Number.parseInt(raw, 10)
+  if (!Number.isSafeInteger(limit) || limit <= 0) return undefined
+  return limit
+}
+
 // XXX(pi-ai upstream): pi-ai flattens the caught error to `error.message`
 // (api/anthropic-messages.js: `errorMessage = error instanceof Error ?
 // error.message : JSON.stringify(error)`), discarding the original Error and its
@@ -41,6 +78,9 @@ export function mapUsage(usage: PiUsage): TokenUsage {
 // us capture the cause ourselves), classify on `code`/`cause` instead of text.
 function classifyPiAiError(message: string): string {
   if (/\b(?:401|403)\b/.test(message)) return 'AUTH'
+  // When a provider gives a specific retry delay (e.g. Gemini per-minute token/request quotas),
+  // it is a transient rate limit that will succeed after waiting, not a permanent quota exhaustion.
+  if (parseProviderRetryAfterMs(message) !== undefined) return 'RATE_LIMIT'
   if (isQuotaExceededError(message)) return QUOTA_EXCEEDED_CODE
   if (/\b429\b|rate.?limit/i.test(message)) return 'RATE_LIMIT'
   // A rejected request body (gateway or provider size cap): resending the
@@ -122,7 +162,15 @@ export function mapStopReason(message: AssistantMessage, contextWindow?: number)
     }
     case 'error': {
       const text = message.errorMessage ?? 'pi-ai stream error'
-      return { kind: 'error', failure: { message: text, code: classifyPiAiError(text) } }
+      const providerRetryAfterMs = parseProviderRetryAfterMs(text)
+      return {
+        kind: 'error',
+        failure: {
+          message: text,
+          code: classifyPiAiError(text),
+          ...providerRetryAfterMs === undefined ? {} : { providerRetryAfterMs },
+        },
+      }
     }
   }
 }
