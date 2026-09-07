@@ -6,6 +6,7 @@
  * card's save is the single point where a draft becomes a document mutation.
  */
 
+import clsx from 'clsx'
 import css from './fields.module.css'
 
 /** What every field control needs regardless of its value type. */
@@ -117,6 +118,60 @@ export function SecretField(props: Pick<FieldProps, 'id' | 'label' | 'hint' | 't
         disabled={props.disabled}
         onChange={(event) => { props.onEdit(event.target.value) }}
       />
+      <p className={css.hint}>{props.hint}</p>
+    </div>
+  )
+}
+
+/**
+ * A toggle switch control for boolean settings.
+ * @param props - label, hint, enabled state, override status, and callbacks.
+ * @returns the switch row.
+ */
+export function SwitchField(props: {
+  id: string
+  label: string
+  hint: string
+  enabled: boolean
+  overridden?: boolean
+  overriddenLabel?: string
+  resetLabel?: string
+  disabled?: boolean
+  onToggle: () => void
+  onReset?: () => void
+}) {
+  return (
+    <div className={css.field}>
+      <div className={css.head}>
+        <span className={css.label}>{props.label}</span>
+        {props.overridden && props.onReset
+          ? (
+            <span className={css.badges}>
+              <span className={css.badge}>{props.overriddenLabel ?? 'Overridden'}</span>
+              <button
+                type="button"
+                className={css.reset}
+                disabled={props.disabled}
+                onClick={props.onReset}
+              >
+                {props.resetLabel ?? 'Reset to default'}
+              </button>
+            </span>
+          )
+          : null}
+        <button
+          id={props.id}
+          type="button"
+          role="switch"
+          aria-checked={props.enabled}
+          aria-label={props.label}
+          className={clsx(css.switch, props.enabled && css.switchOn)}
+          disabled={props.disabled}
+          onClick={props.onToggle}
+        >
+          <span className={css.thumb} />
+        </button>
+      </div>
       <p className={css.hint}>{props.hint}</p>
     </div>
   )

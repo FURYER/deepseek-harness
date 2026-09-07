@@ -82,6 +82,8 @@ export interface CardActions {
   edit: (field: string, text: string) => void
   /** Stage a clear, so saving lets the field re-inherit the composition layer. */
   resetField: (field: string) => void
+  /** Toggle a boolean field. */
+  toggle?: (field: string) => void
   /** Write every staged edit, then re-seed from what the Host accepted. */
   save: () => void
   /** Drop every staged edit. */
@@ -141,6 +143,25 @@ export function textField(field: string): CardFieldSpec {
     parse: (text) => {
       const trimmed = text.trim()
       return trimmed === '' ? { kind: 'clear' } : { kind: 'set', value: trimmed }
+    },
+  }
+}
+
+/**
+ * A boolean flag field.
+ * @param field - field name inside the namespace section.
+ * @returns the field's conversion spec.
+ */
+export function booleanField(field: string): CardFieldSpec {
+  return {
+    field,
+    format: value => typeof value === 'boolean' ? String(value) : '',
+    parse: (text) => {
+      const trimmed = text.trim()
+      if (trimmed === '') return { kind: 'clear' }
+      if (trimmed === 'true') return { kind: 'set', value: true }
+      if (trimmed === 'false') return { kind: 'set', value: false }
+      return undefined
     },
   }
 }
@@ -226,14 +247,35 @@ export class CardForm<T> {
   }
 
   /**
+   * Read one boolean control's state.
+   * @param field - field name of a section field.
+   * @param defaultTrue - whether undefined or empty defaults to true.
+   * @returns enabled boolean, whether overridden, and whether invalid.
+   */
+  boolField(field: string, defaultTrue = true): { enabled: boolean; overridden: boolean; invalid: boolean } {
+    const state = this.field(field)
+    const enabled = state.text === '' ? defaultTrue : state.text === 'true'
+    return {
+      enabled,
+      overridden: state.overridden,
+      invalid: state.invalid,
+    }
+  }
+
+  /**
    * Build the edit, reset, save, and discard actions bound to this form.
    * @returns the actions a card's slot entry injects.
    */
-  actions(): CardActions {
+  actions(): CardActions & { toggle: (field: string, defaultTrue?: boolean) => void } {
     return {
       edit: (field, text) => { this.stage(field, { text, clear: false }) },
       resetField: (field) => {
         this.stage(field, { text: this.spec(field).format(this.baseValue(field)), clear: true })
+      },
+      toggle: (field, defaultTrue = true) => {
+        const current = this.boolField(field, defaultTrue)
+        const next = current.enabled ? 'false' : 'true'
+        this.stage(field, { text: next, clear: false })
       },
       save: () => { void this.save() },
       discard: () => {

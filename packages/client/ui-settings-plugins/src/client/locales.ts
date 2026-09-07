@@ -17,6 +17,13 @@ export type PluginsSettingsLocaleKey =
   | 'subagentModelSelectionPartial' | 'subagentModelSelectionUnavailable'
   | 'subagentModelSelectionUnavailableGroup' | 'subagentModelSelectionEmpty'
   | 'subagentModelSelectionRequired' | 'subagentModelSelectionConflict' | 'subagentModelSelectionOff'
+  | 'soundNotificationsTitle' | 'soundNotificationsDescription' | 'soundNotificationsEnabled' | 'soundNotificationsEnabledHint'
+  | 'soundNotificationsOnTurnComplete' | 'soundNotificationsOnTurnCompleteHint'
+  | 'soundNotificationsOnQuestion' | 'soundNotificationsOnQuestionHint'
+  | 'soundNotificationsOnApproval' | 'soundNotificationsOnApprovalHint'
+  | 'soundNotificationsTurnCompleteSound' | 'soundNotificationsTurnCompleteSoundHint'
+  | 'soundNotificationsQuestionSound' | 'soundNotificationsQuestionSoundHint'
+
 
 /** English copy. */
 export const en: Record<PluginsSettingsLocaleKey, string> = {
@@ -72,6 +79,20 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   subagentModelSelectionRequired: 'Select at least one model before saving.',
   subagentModelSelectionConflict: 'Settings changed elsewhere. Discard your draft and try again.',
   subagentModelSelectionOff: 'Subagents use configured defaults or inherit the parent agent\'s model. Saved model choices are retained.',
+  soundNotificationsTitle: 'Sound notifications',
+  soundNotificationsDescription: 'Audible alerts when the agent completes turns, asks questions, or requests approval.',
+  soundNotificationsEnabled: 'Enable sound notifications',
+  soundNotificationsEnabledHint: 'Master switch for all audio cues.',
+  soundNotificationsOnTurnComplete: 'Play sound on turn completion',
+  soundNotificationsOnTurnCompleteHint: 'Notify when the agent has finished thinking or replying.',
+  soundNotificationsOnQuestion: 'Play sound on questions',
+  soundNotificationsOnQuestionHint: 'Notify when the agent asks a question in the chat.',
+  soundNotificationsOnApproval: 'Play sound on approval requests',
+  soundNotificationsOnApprovalHint: 'Notify when a tool call requires user confirmation.',
+  soundNotificationsTurnCompleteSound: 'Turn complete sound',
+  soundNotificationsTurnCompleteSoundHint: 'System sound (e.g. Asterisk) or path to a .wav audio file.',
+  soundNotificationsQuestionSound: 'Question & approval sound',
+  soundNotificationsQuestionSoundHint: 'System sound (e.g. Exclamation) or path to a .wav audio file.',
 }
 
 /** Simplified Chinese copy. */
@@ -128,4 +149,18 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   subagentModelSelectionRequired: '保存前请至少选择一个模型。',
   subagentModelSelectionConflict: '设置已在其他位置更新。请放弃修改后重试。',
   subagentModelSelectionOff: '关闭后，Subagent 使用配置的默认模型或继承父 Agent 的模型；已选模型会保留。',
+  soundNotificationsTitle: '声音提示',
+  soundNotificationsDescription: '在 Agent 完成轮次、提出问题或请求审批时播放声音。',
+  soundNotificationsEnabled: '启用声音提示',
+  soundNotificationsEnabledHint: '所有声音提示的总开关。',
+  soundNotificationsOnTurnComplete: '轮次完成时播放声音',
+  soundNotificationsOnTurnCompleteHint: '当 Agent 结束思考或回复时发出提示。',
+  soundNotificationsOnQuestion: '提出问题时播放声音',
+  soundNotificationsOnQuestionHint: '当 Agent 在对话中提问时发出提示。',
+  soundNotificationsOnApproval: '请求审批时播放声音',
+  soundNotificationsOnApprovalHint: '当工具调用需要用户确认时发出提示。',
+  soundNotificationsTurnCompleteSound: '轮次完成提示音',
+  soundNotificationsTurnCompleteSoundHint: '系统声音名称（如 Asterisk）或 .wav 音频文件路径。',
+  soundNotificationsQuestionSound: '提问与审批提示音',
+  soundNotificationsQuestionSoundHint: '系统声音名称（如 Exclamation）或 .wav 音频文件路径。',
 }

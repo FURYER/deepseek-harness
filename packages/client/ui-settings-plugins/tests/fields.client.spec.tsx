@@ -2,7 +2,7 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { SecretField, ValueField } from '../src/client/fields.tsx'
+import { SecretField, SwitchField, ValueField } from '../src/client/fields.tsx'
 
 afterEach(cleanup)
 
@@ -148,5 +148,47 @@ describe('SecretField', () => {
     )
 
     expect(screen.getByLabelText('API key')).toHaveProperty('disabled', true)
+  })
+})
+
+describe('SwitchField', () => {
+  it('renders switch toggle and fires onToggle', () => {
+    const onToggle = vi.fn()
+    render(
+      <SwitchField
+        id="test-switch"
+        label="Enable sounds"
+        hint="All audio cues."
+        enabled={true}
+        onToggle={onToggle}
+      />,
+    )
+
+    const switchBtn = screen.getByRole('switch', { name: 'Enable sounds' })
+    expect(switchBtn.getAttribute('aria-checked')).toBe('true')
+
+    fireEvent.click(switchBtn)
+    expect(onToggle).toHaveBeenCalledOnce()
+  })
+
+  it('renders reset button when overridden', () => {
+    const onReset = vi.fn()
+    render(
+      <SwitchField
+        id="test-switch"
+        label="Enable sounds"
+        hint="All audio cues."
+        enabled={false}
+        overridden={true}
+        overriddenLabel="Overridden"
+        resetLabel="Reset to default"
+        onToggle={vi.fn()}
+        onReset={onReset}
+      />,
+    )
+
+    expect(screen.getByText('Overridden')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Reset to default' }))
+    expect(onReset).toHaveBeenCalledOnce()
   })
 })
