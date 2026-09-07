@@ -205,7 +205,7 @@ export const commandDefinition: ConversationNodeDefinition<CommandState> = {
   },
   buildViewNode: (context) => {
     const state = context.state ?? fallbackState(context)
-    if (state === undefined) return null
+    if (state === undefined || state.command.name === 'task-board') return null
     if (state.command.name !== 'compact') {
       return chatNode(context, 'command', state.command.seq, state.command)
     }

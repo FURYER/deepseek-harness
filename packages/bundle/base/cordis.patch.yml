@@ -64,6 +64,12 @@
     - id: user-questions
       name: '@deepseek-ai/dsh-user-questions'
 
+    - id: sound-notifications
+      name: '@deepseek-ai/dsh-sound-notifications'
+
+    - id: task-board
+      name: '@deepseek-ai/dsh-task-board'
+
     - id: agent
       name: '@deepseek-ai/dsh-agent'
 
@@ -432,6 +438,7 @@
       config:
         thresholds: [3, 5, 8]
         argumentsPreviewChars: 500
+
 
     # The shared base enables the stable model-facing web_search and web_fetch
     # tools. The Web app disables this host row and composes both tools per agent

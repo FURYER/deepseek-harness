@@ -102,6 +102,7 @@
     { "path": "./packages/client/ui-session" },
     { "path": "./packages/client/web" },
     { "path": "./packages/context/file-reference" },
+    { "path": "./packages/client/ui-task-board" },
     { "path": "./apps/web" }
   ]
 }
