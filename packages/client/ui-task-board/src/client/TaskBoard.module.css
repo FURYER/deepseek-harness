@@ -27,7 +27,7 @@
   color: var(--dsw-alias-label-primary, #ffffff);
   border-radius: 16px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-  border: 1px solid var(--dsw-alias-border-l2, rgba(255, 255, 255, 0.12));
+  border: 0.5px solid var(--dsw-alias-border-l2, rgba(255, 255, 255, 0.12));
   overflow: hidden;
 }
 
@@ -36,7 +36,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 16px 24px;
-  border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(255, 255, 255, 0.08));
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1, rgba(255, 255, 255, 0.08));
 }
 
 .titleArea {
@@ -74,7 +74,7 @@
   font-size: 13px;
   font-weight: 500;
   border-radius: 8px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(255, 255, 255, 0.15));
+  border: 0.5px solid var(--dsw-alias-border-l2, rgba(255, 255, 255, 0.15));
   background: var(--dsw-alias-interactive-bg-hover, rgba(255, 255, 255, 0.05));
   color: inherit;
   cursor: pointer;
@@ -139,7 +139,7 @@
   flex-direction: column;
   background: var(--dsw-alias-bg-layer-2, rgba(255, 255, 255, 0.03));
   border-radius: 12px;
-  border: 1px solid var(--dsw-alias-border-l1, rgba(255, 255, 255, 0.06));
+  border: 0.5px solid var(--dsw-alias-border-l1, rgba(255, 255, 255, 0.06));
   overflow: hidden;
 }
 
@@ -148,7 +148,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--dsw-alias-border-l1, rgba(255, 255, 255, 0.06));
+  border-bottom: 0.5px solid var(--dsw-alias-border-l1, rgba(255, 255, 255, 0.06));
   font-size: 14px;
   font-weight: 600;
 }
@@ -167,11 +167,13 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
 .card {
   background: var(--dsw-alias-bg-layer-1, rgba(255, 255, 255, 0.06));
-  border: 1px solid var(--dsw-alias-border-l2, rgba(255, 255, 255, 0.08));
+  border: 0.5px solid var(--dsw-alias-border-l2, rgba(255, 255, 255, 0.08));
   border-radius: 10px;
   padding: 14px;
   display: flex;
@@ -386,8 +388,14 @@
 .cardActions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   margin-top: 4px;
+}
+
+.cardActionBtn {
+  padding: 3px 8px;
+  font-size: 11px;
 }
 
 .dialogOverlay {
@@ -403,7 +411,7 @@
 
 .dialog {
   background: var(--dsw-alias-bg-layer-1, #1e1e24);
-  border: 1px solid var(--dsw-alias-border-l2, rgba(255, 255, 255, 0.15));
+  border: 0.5px solid var(--dsw-alias-border-l2, rgba(255, 255, 255, 0.15));
   border-radius: 12px;
   width: 90%;
   max-width: 500px;
@@ -433,7 +441,7 @@
 .input, .textarea, .select {
   padding: 8px 12px;
   border-radius: 8px;
-  border: 1px solid var(--dsw-alias-border-l2, rgba(255, 255, 255, 0.15));
+  border: 0.5px solid var(--dsw-alias-border-l2, rgba(255, 255, 255, 0.15));
   background: var(--dsw-alias-bg-layer-2, rgba(0, 0, 0, 0.2));
   color: inherit;
   font-family: inherit;
@@ -461,6 +469,8 @@
   gap: 10px;
   max-height: 300px;
   overflow-y: auto;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
 .workerItem {
@@ -470,7 +480,7 @@
   padding: 10px 14px;
   background: var(--dsw-alias-bg-layer-2, rgba(0, 0, 0, 0.2));
   border-radius: 8px;
-  border: 1px solid var(--dsw-alias-border-l1, rgba(255, 255, 255, 0.06));
+  border: 0.5px solid var(--dsw-alias-border-l1, rgba(255, 255, 255, 0.06));
 }
 
 .workerInfo {
@@ -483,6 +493,7 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  corner-shape: round;
 }
 
 .workerIdle {
@@ -528,4 +539,5 @@
   gap: 0;
   padding: 0;
   border-radius: 50%;
+  corner-shape: round;
 }

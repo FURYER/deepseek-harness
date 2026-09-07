@@ -6,18 +6,39 @@ export interface TaskBoardActions {
   getState: () => Promise<TaskBoardState | null>
   setAutoFulfill: (enabled: boolean) => Promise<TaskBoardState | null>
   setAutoMerge: (enabled: boolean) => Promise<TaskBoardState | null>
-  addTask: (text: string, attachments?: TaskAttachment[], projectId?: string, projectName?: string, autoMerge?: boolean) => Promise<TaskBoardState | null>
+  addTask: (
+    text: string,
+    attachments?: TaskAttachment[],
+    projectId?: string,
+    projectName?: string,
+    autoMerge?: boolean,
+  ) => Promise<TaskBoardState | null>
   setTaskAutoMerge: (taskId: string, enabled: boolean) => Promise<TaskBoardState | null>
   deleteTask: (taskId: string) => Promise<TaskBoardState | null>
   addAttachments: (taskId: string, attachments: TaskAttachment[]) => Promise<TaskBoardState | null>
   addProject: (name: string, description?: string, path?: string) => Promise<TaskBoardState | null>
-  addWorker: (name: string, provider: string, model: string, reasoningEffort?: string, fallbackModels?: FallbackModel[]) => Promise<TaskBoardState | null>
-  updateWorker: (id: string, updates: Partial<{ name: string; provider: string; model: string; reasoningEffort?: string; fallbackModels?: FallbackModel[] }>) => Promise<TaskBoardState | null>
+  addWorker: (
+    name: string,
+    provider: string,
+    model: string,
+    reasoningEffort?: string,
+    fallbackModels?: FallbackModel[],
+  ) => Promise<TaskBoardState | null>
+  updateWorker: (
+    id: string,
+    updates: Partial<{
+      name: string
+      provider: string
+      model: string
+      reasoningEffort?: string
+      fallbackModels?: FallbackModel[]
+    }>,
+  ) => Promise<TaskBoardState | null>
   removeWorker: (id: string) => Promise<TaskBoardState | null>
   rework: (taskId: string, comment: string) => Promise<TaskBoardState | null>
   approve: (taskId: string) => Promise<TaskBoardState | null>
   openSession: (sessionId: string) => void
-  getModelCatalog: () => Promise<any>
+  getModelCatalog: () => Promise<unknown>
   getWorkspaces?: () => Array<{ id: string; name: string; path?: string }>
 }
 
@@ -43,7 +64,17 @@ export function TaskBoardView({
   const [reworkComment, setReworkComment] = useState('')
 
   // Model Catalog from Harness Host
-  const [catalog, setCatalog] = useState<{ groups: Array<{ id: string; name: string; models: Array<{ id: string; name: string; reasoning?: { efforts: Array<{ id: string; name: string }>; defaultEffort?: string } }> }> } | null>(null)
+  const [catalog, setCatalog] = useState<{
+    groups: Array<{
+      id: string
+      name: string
+      models: Array<{
+        id: string
+        name: string
+        reasoning?: { efforts: Array<{ id: string; name: string }>; defaultEffort?: string }
+      }>
+    }>
+  } | null>(null)
 
   // Add Worker Form state
   const [workerName, setWorkerName] = useState('')
@@ -209,7 +240,7 @@ export function TaskBoardView({
             }
           } catch {}
           if (!candidate || !s.projects.some(p => p.id === candidate)) {
-            return s.projects[0]!.id
+            return s.projects[0]?.id || 'proj-dsh'
           }
           return candidate
         })
@@ -428,7 +459,9 @@ export function TaskBoardView({
                   <div className={css.cardMeta}>
                     <span className={css.projectTag}>📁 {task.projectName || 'DeepSeek Harness'}</span>
                     {task.assignedWorkerId && (
-                      <span className={css.workerTag}>Assigned: {state.workers.find(w => w.id === task.assignedWorkerId)?.name || task.assignedWorkerId}</span>
+                      <span className={css.workerTag}>
+                        Assigned: {state.workers.find(w => w.id === task.assignedWorkerId)?.name || task.assignedWorkerId}
+                      </span>
                     )}
                     {task.branchName && (
                       <span className={css.branchTag}>{task.branchName}</span>
@@ -438,8 +471,7 @@ export function TaskBoardView({
                   <div className={css.cardActions}>
                     <button
                       type="button"
-                      className={css.btn}
-                      style={{ padding: '3px 8px', fontSize: 11 }}
+                      className={`${css.btn} ${css.cardActionBtn}`}
                       onClick={() => {
                         setAttachTaskId(task.id)
                         setExistingTaskAttachments([])
@@ -496,7 +528,9 @@ export function TaskBoardView({
                     <span className={css.projectTag}>📁 {task.projectName || 'DeepSeek Harness'}</span>
                     <span className={css.workerTag}>In Progress</span>
                     {task.assignedWorkerId && (
-                      <span>Worker: {state.workers.find(w => w.id === task.assignedWorkerId)?.name || task.assignedWorkerId}</span>
+                      <span>
+                        Worker: {state.workers.find(w => w.id === task.assignedWorkerId)?.name || task.assignedWorkerId}
+                      </span>
                     )}
                     {task.branchName && (
                       <span className={css.branchTag}>{task.branchName}</span>
@@ -505,8 +539,7 @@ export function TaskBoardView({
                   <div className={css.cardActions}>
                     <button
                       type="button"
-                      className={css.btn}
-                      style={{ padding: '3px 8px', fontSize: 11 }}
+                      className={`${css.btn} ${css.cardActionBtn}`}
                       onClick={() => {
                         setAttachTaskId(task.id)
                         setExistingTaskAttachments([])
@@ -517,10 +550,9 @@ export function TaskBoardView({
                     {task.sessionId && (
                       <button
                         type="button"
-                        className={css.btn}
-                        style={{ padding: '3px 8px', fontSize: 11 }}
+                        className={`${css.btn} ${css.cardActionBtn}`}
                         onClick={() => {
-                          actions.openSession(task.sessionId!)
+                          actions.openSession(task.sessionId)
                           onClose()
                         }}
                       >
@@ -586,7 +618,9 @@ export function TaskBoardView({
                   <div className={css.cardMeta}>
                     <span className={css.projectTag}>📁 {task.projectName || 'DeepSeek Harness'}</span>
                     {task.assignedWorkerId && (
-                      <span className={css.workerTag}>Done by: {state.workers.find(w => w.id === task.assignedWorkerId)?.name || task.assignedWorkerId}</span>
+                      <span className={css.workerTag}>
+                        Done by: {state.workers.find(w => w.id === task.assignedWorkerId)?.name || task.assignedWorkerId}
+                      </span>
                     )}
                     {task.branchName && (
                       <span className={css.branchTag}>{task.branchName}</span>
@@ -595,8 +629,7 @@ export function TaskBoardView({
                   <div className={css.cardActions}>
                     <button
                       type="button"
-                      className={css.btn}
-                      style={{ padding: '3px 8px', fontSize: 11 }}
+                      className={`${css.btn} ${css.cardActionBtn}`}
                       onClick={() => {
                         setAttachTaskId(task.id)
                         setExistingTaskAttachments([])
@@ -607,9 +640,9 @@ export function TaskBoardView({
                     {task.sessionId && (
                       <button
                         type="button"
-                        className={css.btn}
+                        className={`${css.btn} ${css.cardActionBtn}`}
                         onClick={() => {
-                          actions.openSession(task.sessionId!)
+                          actions.openSession(task.sessionId)
                           onClose()
                         }}
                       >
@@ -618,14 +651,14 @@ export function TaskBoardView({
                     )}
                     <button
                       type="button"
-                      className={`${css.btn} ${css.btnDanger}`}
+                      className={`${css.btn} ${css.btnDanger} ${css.cardActionBtn}`}
                       onClick={() => setShowReworkDialog(task.id)}
                     >
                       Rework
                     </button>
                     <button
                       type="button"
-                      className={`${css.btn} ${css.btnSuccess}`}
+                      className={`${css.btn} ${css.btnSuccess} ${css.cardActionBtn}`}
                       onClick={() => handleApprove(task.id)}
                     >
                       {task.mergeConflict ? 'Retry Merge' : 'Approve & Merge'}
@@ -678,7 +711,9 @@ export function TaskBoardView({
                   <div className={css.cardMeta}>
                     <span className={css.projectTag}>📁 {task.projectName || 'DeepSeek Harness'}</span>
                     {task.assignedWorkerId && (
-                      <span className={css.workerTag}>{state.workers.find(w => w.id === task.assignedWorkerId)?.name || task.assignedWorkerId}</span>
+                      <span className={css.workerTag}>
+                        {state.workers.find(w => w.id === task.assignedWorkerId)?.name || task.assignedWorkerId}
+                      </span>
                     )}
                     {task.completedAt && (
                       <span>Merged {new Date(task.completedAt).toLocaleTimeString()}</span>
@@ -687,8 +722,7 @@ export function TaskBoardView({
                   <div className={css.cardActions}>
                     <button
                       type="button"
-                      className={css.btn}
-                      style={{ padding: '3px 8px', fontSize: 11 }}
+                      className={`${css.btn} ${css.cardActionBtn}`}
                       onClick={() => {
                         setAttachTaskId(task.id)
                         setExistingTaskAttachments([])
@@ -699,10 +733,9 @@ export function TaskBoardView({
                     {task.sessionId && (
                       <button
                         type="button"
-                        className={css.btn}
-                        style={{ padding: '3px 8px', fontSize: 11 }}
+                        className={`${css.btn} ${css.cardActionBtn}`}
                         onClick={() => {
-                          actions.openSession(task.sessionId!)
+                          actions.openSession(task.sessionId)
                           onClose()
                         }}
                       >
@@ -1170,7 +1203,7 @@ export function TaskBoardView({
                                           onClick={() => {
                                             setEditWorkerFallbacks((prev) => {
                                               const copy = [...prev]
-                                              const item = copy.splice(idx, 1)[0]!
+                                              const item = copy.splice(idx, 1)[0] as FallbackModel
                                               copy.splice(idx - 1, 0, item)
                                               return copy
                                             })
@@ -1188,7 +1221,7 @@ export function TaskBoardView({
                                           onClick={() => {
                                             setEditWorkerFallbacks((prev) => {
                                               const copy = [...prev]
-                                              const item = copy.splice(idx, 1)[0]!
+                                              const item = copy.splice(idx, 1)[0] as FallbackModel
                                               copy.splice(idx + 1, 0, item)
                                               return copy
                                             })
@@ -1220,7 +1253,7 @@ export function TaskBoardView({
 
                             {/* Add fallback picker */}
                             {catalog && catalog.groups && catalog.groups.length > 0 && (() => {
-                              const activeP = editNewFallbackProvider || catalog.groups[0]!.id
+                              const activeP = editNewFallbackProvider || catalog.groups[0]?.id
                               const grp = catalog.groups.find(g => g.id === activeP) || catalog.groups[0]
                               const activeM = editNewFallbackModel || grp?.models[0]?.id || ''
                               const mod = grp?.models.find(m => m.id === activeM)
@@ -1236,8 +1269,8 @@ export function TaskBoardView({
                                       setEditNewFallbackProvider(e.target.value)
                                       const g = catalog.groups.find(x => x.id === e.target.value)
                                       if (g && g.models.length > 0) {
-                                        setEditNewFallbackModel(g.models[0]!.id)
-                                        setEditNewFallbackReasoningEffort(g.models[0]!.reasoning?.defaultEffort || '')
+                                        setEditNewFallbackModel(g.models[0]?.id)
+                                        setEditNewFallbackReasoningEffort(g.models[0]?.reasoning?.defaultEffort || '')
                                       }
                                     }}
                                   >
@@ -1431,7 +1464,7 @@ export function TaskBoardView({
                                 onClick={() => {
                                   setWorkerFallbacks((prev) => {
                                     const copy = [...prev]
-                                    const item = copy.splice(idx, 1)[0]!
+                                    const item = copy.splice(idx, 1)[0] as FallbackModel
                                     copy.splice(idx - 1, 0, item)
                                     return copy
                                   })
@@ -1449,7 +1482,7 @@ export function TaskBoardView({
                                 onClick={() => {
                                   setWorkerFallbacks((prev) => {
                                     const copy = [...prev]
-                                    const item = copy.splice(idx, 1)[0]!
+                                    const item = copy.splice(idx, 1)[0] as FallbackModel
                                     copy.splice(idx + 1, 0, item)
                                     return copy
                                   })
@@ -1481,7 +1514,7 @@ export function TaskBoardView({
 
                   {/* Add fallback picker for New Worker */}
                   {catalog && catalog.groups && catalog.groups.length > 0 && (() => {
-                    const activeP = newFallbackProvider || catalog.groups[0]!.id
+                    const activeP = newFallbackProvider || catalog.groups[0]?.id
                     const grp = catalog.groups.find(g => g.id === activeP) || catalog.groups[0]
                     const activeM = newFallbackModel || grp?.models[0]?.id || ''
                     const mod = grp?.models.find(m => m.id === activeM)
@@ -1497,8 +1530,8 @@ export function TaskBoardView({
                             setNewFallbackProvider(e.target.value)
                             const g = catalog.groups.find(x => x.id === e.target.value)
                             if (g && g.models.length > 0) {
-                              setNewFallbackModel(g.models[0]!.id)
-                              setNewFallbackReasoningEffort(g.models[0]!.reasoning?.defaultEffort || '')
+                              setNewFallbackModel(g.models[0]?.id)
+                              setNewFallbackReasoningEffort(g.models[0]?.reasoning?.defaultEffort || '')
                             }
                           }}
                         >
