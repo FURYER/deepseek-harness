@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-api-session-controller/client'
@@ -11,9 +10,11 @@ import type { IWorkspaces } from '@deepseek-ai/dsh-api-workspace-controller/clie
 import type {} from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
-import { TaskBoardView, type TaskBoardActions } from './TaskBoardView.tsx'
+import type { TaskBoardActions } from './TaskBoardView.tsx'
 import type { TaskBoardState } from './types.ts'
 import { en, zh, type TaskBoardKey } from './locales.ts'
+import { TaskBoardModalWrapper, setTaskBoardOpen } from './TaskBoardModal.tsx'
+import React from 'react'
 import css from './TaskBoard.module.css'
 
 export type { TaskBoardKey } from './locales.ts'
@@ -29,42 +30,10 @@ const NS = 'taskBoard'
 
 export const inject = ['slots', 'remote', 'remote.commands', 'remote.session', 'locale', 'sessions', 'workspaces']
 
-// Global state for opening task board modal
-let isBoardOpen = false
-const openListeners = new Set<(open: boolean) => void>()
-
-function setTaskBoardOpen(open: boolean) {
-  isBoardOpen = open
-  for (const listener of openListeners) {
-    listener(open)
-  }
-}
-
-function TaskBoardModalWrapper({ actions }: { actions: TaskBoardActions }) {
-  const [isOpen, setIsOpen] = useState(isBoardOpen)
-
-  useEffect(() => {
-    const l = (val: boolean) => setIsOpen(val)
-    openListeners.add(l)
-    return () => { openListeners.delete(l) }
-  }, [])
-
-  if (!isOpen) return null
-
-  return (
-    <TaskBoardView
-      isOpen={isOpen}
-      onClose={() => setTaskBoardOpen(false)}
-      actions={actions}
-    />
-  )
-}
-
 export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-task-board: dictionaries')
 
-  // Helper to execute IPC commands against host task-board
-  const executeIpc = async (actionObj: Record<string, any>): Promise<TaskBoardState | null> => {
+  const executeIpc = async (actionObj: Record<string, unknown>): Promise<TaskBoardState | null> => {
     try {
       const snapshot = ctx.sessions.list.getSnapshot()
       let activeSessionId = snapshot.current
@@ -72,7 +41,6 @@ export function apply(ctx: ClientContext): void {
         activeSessionId = snapshot.ids[0]
       }
       if (!activeSessionId) {
-        // No session exists yet, create one so commands can execute
         activeSessionId = await ctx.sessions.create()
       }
       if (!activeSessionId) {
@@ -133,34 +101,34 @@ export function apply(ctx: ClientContext): void {
     },
   }
 
-  // 1. Register Trigger in sidebar footer
   ctx.slots.inject('sidebar.footer.action', () => ctx.slots.register({
     name: 'sidebar.footer.action',
     id: 'task-board-trigger',
     order: 10,
     locale: NS,
   }, ({ wide }: PropsRuntime<'sidebar.footer.action'>) => {
-    return (
-      <button
-        type="button"
-        className={`${css.sidebarTrigger} ${!wide ? css.rail : ''}`}
-        title="Task Board"
-        aria-label="Task Board"
-        onClick={() => setTaskBoardOpen(true)}
-      >
-        <svg width={wide ? 16 : 18} height={wide ? 16 : 18} viewBox="0 0 16 16" fill="currentColor">
-          <path d="M1.5 2.5A1.5 1.5 0 0 1 3 1h10a1.5 1.5 0 0 1 1.5 1.5v11A1.5 1.5 0 0 1 13 15H3a1.5 1.5 0 0 1-1.5-1.5v-11zM3 2a.5.5 0 0 0-.5.5v11a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-11A.5.5 0 0 0 13 2H3z" />
-          <path d="M4 4.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-5zm5 0a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-3z" />
-        </svg>
-        {wide && <span>Task Board</span>}
-      </button>
+    return React.createElement(
+      'button',
+      {
+        type: 'button',
+        className: `${css.sidebarTrigger} ${!wide ? css.rail : ''}`,
+        title: 'Task Board',
+        'aria-label': 'Task Board',
+        onClick: () => setTaskBoardOpen(true),
+      },
+      React.createElement(
+        'svg',
+        { width: wide ? 16 : 18, height: wide ? 16 : 18, viewBox: '0 0 16 16', fill: 'currentColor' },
+        React.createElement('path', { d: 'M1.5 2.5A1.5 1.5 0 0 1 3 1h10a1.5 1.5 0 0 1 1.5 1.5v11A1.5 1.5 0 0 1 13 15H3a1.5 1.5 0 0 1-1.5-1.5v-11zM3 2a.5.5 0 0 0-.5.5v11a.5.5 0 0 0 .5.5h10a.5.5 0 0 0 .5-.5v-11A.5.5 0 0 0 13 2H3z' }),
+        React.createElement('path', { d: 'M4 4.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v5a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-5zm5 0a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v3a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1-.5-.5v-3z' }),
+      ),
+      wide && React.createElement('span', null, 'Task Board'),
     )
   }))
 
-  // 2. Register TaskBoardModal in shell.overlay
   ctx.slots.inject('shell.overlay', () => ctx.slots.register({
     name: 'shell.overlay',
     id: 'task-board-modal',
     locale: NS,
-  }, () => <TaskBoardModalWrapper actions={actions} />))
+  }, () => React.createElement(TaskBoardModalWrapper, { actions })))
 }
