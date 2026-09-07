@@ -23,6 +23,9 @@ export type PluginsSettingsLocaleKey =
   | 'soundNotificationsOnApproval' | 'soundNotificationsOnApprovalHint'
   | 'soundNotificationsTurnCompleteSound' | 'soundNotificationsTurnCompleteSoundHint'
   | 'soundNotificationsQuestionSound' | 'soundNotificationsQuestionSoundHint'
+  | 'llmFallbackTitle' | 'llmFallbackDescription' | 'llmFallbackEnabled' | 'llmFallbackEnabledHint'
+  | 'llmFallbackDefaultCooldownMs' | 'llmFallbackDefaultCooldownMsHint'
+  | 'llmFallbackModels' | 'llmFallbackModelsHint'
 
 
 /** English copy. */
@@ -93,6 +96,14 @@ export const en: Record<PluginsSettingsLocaleKey, string> = {
   soundNotificationsTurnCompleteSoundHint: 'System sound (e.g. Asterisk) or path to a .wav audio file.',
   soundNotificationsQuestionSound: 'Question & approval sound',
   soundNotificationsQuestionSoundHint: 'System sound (e.g. Exclamation) or path to a .wav audio file.',
+  llmFallbackTitle: 'LLM Fallback & Rate-Limit Failover',
+  llmFallbackDescription: 'Automatically switch to backup models when encountering rate limits or quota exhaustion.',
+  llmFallbackEnabled: 'Enable LLM fallback',
+  llmFallbackEnabledHint: 'Master switch to route failed requests to secondary models.',
+  llmFallbackDefaultCooldownMs: 'Default cooldown (ms)',
+  llmFallbackDefaultCooldownMsHint: 'Time to wait before retrying a rate-limited model if server omitted retry-after (default 60000).',
+  llmFallbackModels: 'Fallback models (JSON)',
+  llmFallbackModelsHint: 'Ordered list of fallback models: [{"provider":"...","model":"..."}].',
 }
 
 /** Simplified Chinese copy. */
@@ -163,4 +174,12 @@ export const zh: Record<PluginsSettingsLocaleKey, string> = {
   soundNotificationsTurnCompleteSoundHint: '系统声音名称（如 Asterisk）或 .wav 音频文件路径。',
   soundNotificationsQuestionSound: '提问与审批提示音',
   soundNotificationsQuestionSoundHint: '系统声音名称（如 Exclamation）或 .wav 音频文件路径。',
+  llmFallbackTitle: 'LLM 降级与限流容灾',
+  llmFallbackDescription: '遇到 429 限流或配额超额时自动无缝切换到备用模型。',
+  llmFallbackEnabled: '启用 LLM 降级容灾',
+  llmFallbackEnabledHint: '遇到限流时自动路由到备用模型的总开关。',
+  llmFallbackDefaultCooldownMs: '默认冷却时间（毫秒）',
+  llmFallbackDefaultCooldownMsHint: '若服务端未返回 retry-after，模型被冷却等待的时间（默认 60000）。',
+  llmFallbackModels: '备用模型列表 (JSON)',
+  llmFallbackModelsHint: '按优先级排列的备用模型数组：[{"provider":"...","model":"..."}]。',
 }

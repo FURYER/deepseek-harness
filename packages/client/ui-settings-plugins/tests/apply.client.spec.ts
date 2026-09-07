@@ -138,6 +138,7 @@ describe('ui-settings-plugins apply', () => {
         'subagent-model-selection',
         'web-search-deepseek',
         'sound-notifications',
+        'llm-fallback',
       ])
   })
 
@@ -241,7 +242,7 @@ describe('ui-settings-plugins apply', () => {
     declareRoot(slots)
     const fiber = ctx.plugin({ inject: [...inject], apply })
     await fiber.await()
-    expect(slots.entries('settings.plugin.item')).toHaveLength(5)
+    expect(slots.entries('settings.plugin.item')).toHaveLength(6)
 
     await fiber.dispose()
 

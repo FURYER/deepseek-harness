@@ -27,6 +27,7 @@ import { PluginsSettingsSection } from './PluginsSettingsSection.tsx'
 import { SubagentModelSelectionCard } from './SubagentModelSelectionCard.tsx'
 import { WebSearchCard } from './WebSearchCard.tsx'
 import { SoundNotificationsCard } from './SoundNotificationsCard.tsx'
+import { LlmFallbackCard } from './LlmFallbackCard.tsx'
 import { AGENT_LOOP_NS, AgentLoopCardController } from './agent-loop-card-controller.ts'
 import { SHELL_NS, BashCardController } from './bash-card-controller.ts'
 import { ConfigurablePluginsTabController } from './tab-store.ts'
@@ -37,6 +38,9 @@ import { WEB_SEARCH_NS, WebSearchCardController } from './web-search-card-contro
 import {
   SOUND_NOTIFICATIONS_NS, SoundNotificationsCardController,
 } from './sound-notifications-card-controller.ts'
+import {
+  LLM_FALLBACK_NS, LlmFallbackCardController,
+} from './llm-fallback-card-controller.ts'
 import { en, zh } from './locales.ts'
 
 export type { PluginsSettingsSectionInjected, PluginsSettingsSectionProps } from './PluginsSettingsSection.tsx'
@@ -79,6 +83,9 @@ export function apply(ctx: ClientContext): void {
   )
   const soundNotifications = new SoundNotificationsCardController(
     ctx.settingsScope.bind({ namespace: SOUND_NOTIFICATIONS_NS }),
+  )
+  const llmFallback = new LlmFallbackCardController(
+    ctx.settingsScope.bind({ namespace: LLM_FALLBACK_NS }),
   )
 
   // The credential a card reports is not part of any settings section, so its
@@ -202,5 +209,11 @@ export function apply(ctx: ClientContext): void {
       locale: NS,
       inject: () => soundNotifications.inject(),
     }, SoundNotificationsCard)
+    yield ctx.slots.register({
+      name: 'settings.plugin.item',
+      key: LLM_FALLBACK_NS,
+      locale: NS,
+      inject: () => llmFallback.inject(),
+    }, LlmFallbackCard)
   })
 }
