@@ -94,16 +94,29 @@ export function TaskBoardView({
   useEffect(() => {
     if (!isOpen) return
     let active = true
-    void actions.getModelCatalog().then((cat) => {
-      if (active && cat) {
-        setCatalog(cat)
-        if (cat.groups && cat.groups.length > 0) {
-          const firstGroup = cat.groups[0]
+    void actions.getModelCatalog().then((rawCat) => {
+      const cat = rawCat as {
+        groups?: Array<{
+          id: string
+          name: string
+          models: Array<{
+            id: string
+            name: string
+            reasoning?: { efforts: Array<{ id: string; name: string }>; defaultEffort?: string }
+          }>
+        }>
+      } | null
+      if (active && cat?.groups && cat.groups.length > 0) {
+        setCatalog({ groups: cat.groups })
+        const firstGroup = cat.groups[0]
+        if (firstGroup) {
           setWorkerProvider(firstGroup.id)
           if (firstGroup.models && firstGroup.models.length > 0) {
             const firstModel = firstGroup.models[0]
-            setWorkerModel(firstModel.id)
-            setWorkerReasoningEffort(firstModel.reasoning?.defaultEffort || '')
+            if (firstModel) {
+              setWorkerModel(firstModel.id)
+              setWorkerReasoningEffort(firstModel.reasoning?.defaultEffort || '')
+            }
           }
         }
       }
@@ -552,8 +565,10 @@ export function TaskBoardView({
                         type="button"
                         className={`${css.btn} ${css.cardActionBtn}`}
                         onClick={() => {
-                          actions.openSession(task.sessionId)
-                          onClose()
+                          if (task.sessionId) {
+                            actions.openSession(task.sessionId)
+                            onClose()
+                          }
                         }}
                       >
                         Open Chat
@@ -642,8 +657,10 @@ export function TaskBoardView({
                         type="button"
                         className={`${css.btn} ${css.cardActionBtn}`}
                         onClick={() => {
-                          actions.openSession(task.sessionId)
-                          onClose()
+                          if (task.sessionId) {
+                            actions.openSession(task.sessionId)
+                            onClose()
+                          }
                         }}
                       >
                         Inspect Chat
@@ -735,8 +752,10 @@ export function TaskBoardView({
                         type="button"
                         className={`${css.btn} ${css.cardActionBtn}`}
                         onClick={() => {
-                          actions.openSession(task.sessionId)
-                          onClose()
+                          if (task.sessionId) {
+                            actions.openSession(task.sessionId)
+                            onClose()
+                          }
                         }}
                       >
                         View Chat History
@@ -1269,7 +1288,7 @@ export function TaskBoardView({
                                       setEditNewFallbackProvider(e.target.value)
                                       const g = catalog.groups.find(x => x.id === e.target.value)
                                       if (g && g.models.length > 0) {
-                                        setEditNewFallbackModel(g.models[0]?.id)
+                                        setEditNewFallbackModel(g.models[0]?.id || '')
                                         setEditNewFallbackReasoningEffort(g.models[0]?.reasoning?.defaultEffort || '')
                                       }
                                     }}
@@ -1530,7 +1549,7 @@ export function TaskBoardView({
                             setNewFallbackProvider(e.target.value)
                             const g = catalog.groups.find(x => x.id === e.target.value)
                             if (g && g.models.length > 0) {
-                              setNewFallbackModel(g.models[0]?.id)
+                              setNewFallbackModel(g.models[0]?.id || '')
                               setNewFallbackReasoningEffort(g.models[0]?.reasoning?.defaultEffort || '')
                             }
                           }}

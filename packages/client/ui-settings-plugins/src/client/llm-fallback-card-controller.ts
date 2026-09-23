@@ -151,7 +151,7 @@ export class LlmFallbackCardController {
 
   discard(): void {
     this.draftModels = null
-    this.form.discard()
+    this.form.actions().discard()
     this.publish()
   }
 
