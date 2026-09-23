@@ -1,4 +1,4 @@
-import { createUserMessage } from '@deepseek-ai/dsh-llm'
+import { createUserMessage, type StreamChunk } from '@deepseek-ai/dsh-llm'
 import { describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry, { type Agent } from '@deepseek-ai/dsh-agent'
@@ -165,5 +165,34 @@ describe('Agent', () => {
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('agent event "agent/status" listener threw'),
     )
+  })
+
+  it('records actual model and provider from replayState when fallback occurred', async () => {
+    const replayState = {
+      response: {
+        provider: 'fallback-provider',
+        model: 'fallback-model',
+      },
+    }
+    const chunks: StreamChunk[] = [
+      { type: 'block-start', index: 0, blockType: 'text' },
+      { type: 'text-delta', index: 0, text: 'ok' },
+      { type: 'block-end', index: 0, block: { type: 'text', text: 'ok' } },
+      { type: 'usage', usage: { inputTokens: 10, outputTokens: 2 } },
+      { type: 'finish', reason: { kind: 'stop' }, replayState },
+    ]
+    const ctx = await harness(new MockAdapter([chunks]))
+    const agent = ctx.agentLoop.create(SessionId('a1'), { provider: 'mock', model: 'mock' })
+
+    send(agent, 'hi')
+    await agent.whenIdle()
+
+    const assistantMsg = agent.session.snapshotEvents().find(e => e.type === 'assistant/message')
+    expect(assistantMsg?.type === 'assistant/message' && assistantMsg.data.message.source).toEqual({
+      kind: 'model',
+      provider: 'fallback-provider',
+      model: 'fallback-model',
+      replayState,
+    })
   })
 })

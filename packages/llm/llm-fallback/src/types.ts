@@ -9,6 +9,11 @@ export interface FallbackModelSpec {
   model: string
   /** Optional reasoning effort override for the fallback model. */
   reasoningEffort?: string | undefined
+  /**
+   * Optional maximum context token limit for this fallback candidate (e.g. 16000 for Gemma free tier).
+   * If messages exceed this limit, history will be dynamically pruned to fit within this budget.
+   */
+  maxContextTokens?: number | undefined
 }
 
 export interface LlmFallbackConfig {

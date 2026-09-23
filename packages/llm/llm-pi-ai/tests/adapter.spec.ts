@@ -1,3 +1,4 @@
+import { rmSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Context, Service } from '@deepseek-ai/cordis'
 import { AttachmentId, AttachmentStore, ImageVariantId } from '@deepseek-ai/dsh-attachment'
@@ -9,7 +10,7 @@ import type {
   SaveImageAttachment,
   StoredImageAttachment,
 } from '@deepseek-ai/dsh-attachment'
-import LlmRuntime, { createUserMessage, CONTEXT_WINDOW_EXCEEDED_CODE, LlmError, ReasoningEffortId, userAgent } from '@deepseek-ai/dsh-llm'
+import LlmRuntime, { createMessage, createUserMessage, CONTEXT_WINDOW_EXCEEDED_CODE, LlmError, ReasoningEffortId, ToolCallId, userAgent } from '@deepseek-ai/dsh-llm'
 import * as LlmPiAi from '@deepseek-ai/dsh-llm-pi-ai'
 import { PiAiAdapter } from '@deepseek-ai/dsh-llm-pi-ai'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
@@ -22,6 +23,7 @@ import { closeMockServers, mockServer, textEvents } from './mock-server.ts'
 afterEach(async () => {
   vi.unstubAllEnvs()
   await closeMockServers()
+  rmSync('/nonexistent-test-dsh-home', { recursive: true, force: true })
 })
 
 const IMAGE_REF: ImageAttachmentRef = {
@@ -67,6 +69,7 @@ function adapterOf(
 }
 
 beforeEach(() => {
+  rmSync('/nonexistent-test-dsh-home', { recursive: true, force: true })
   // Configuration carries only the reference; these mounts resolve it from
   // the environment, which is the whole credential plane without a seam.
   vi.stubEnv('PI_TEST_KEY', 'test-key')
@@ -1061,5 +1064,109 @@ describe('abort wiring', () => {
 
     const after = await ctx.llm.resolveModelInfo('deepseek', 'deepseek-v4-flash')
     expect(after.context?.contextWindow).toBe(250000)
+  })
+
+  it('repairs thought signatures on Google historical function calls', async () => {
+    const googleSse = JSON.stringify({
+      candidates: [
+        {
+          content: { parts: [{ text: 'done' }] },
+          finishReason: 'STOP',
+        },
+      ],
+    })
+    const server = await mockServer([
+      { events: [googleSse] },
+    ])
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(LlmPiAi, {
+      providers: {
+        google: {
+          apiKeyEnv: 'PI_TEST_KEY',
+          baseURL: server.url,
+        },
+      },
+    })
+    const validSig = 'Cr4CCrkCCpEB'
+    const result = await assemble(ctx, {
+      provider: 'google',
+      model: 'gemini-2.5-flash',
+      messages: [
+        createUserMessage({ content: [{ type: 'text', text: 'call tool' }], source: { kind: 'plugin', plugin: 'test' } }),
+        createMessage({
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool-call',
+              id: ToolCallId('tc-1'),
+              name: 'my_tool',
+              arguments: '{"foo":"bar"}',
+            },
+            {
+              type: 'tool-call',
+              id: ToolCallId('tc-2'),
+              name: 'foreign_tool',
+              arguments: '{}',
+            },
+          ],
+          source: {
+            kind: 'model',
+            provider: 'google',
+            model: 'gemini-3.5-flash-lite',
+            replayState: {
+              response: {
+                kind: 'pi-ai',
+                version: 2,
+                api: 'google-generative-ai',
+                provider: 'google',
+                model: 'gemini-3.5-flash-lite',
+                stopReason: 'toolUse',
+              },
+              blocks: [
+                {
+                  type: 'tool-call',
+                  thoughtSignature: validSig,
+                },
+                {
+                  type: 'tool-call',
+                },
+              ],
+            },
+          },
+        }),
+        createMessage({
+          role: 'user',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: ToolCallId('tc-1'),
+              content: [{ type: 'text', text: 'result 1' }],
+            },
+            {
+              type: 'tool-result',
+              toolCallId: ToolCallId('tc-2'),
+              content: [{ type: 'text', text: 'result 2' }],
+            },
+          ],
+          source: { kind: 'plugin', plugin: 'test' },
+        }),
+      ],
+    })
+
+    expect(result.finish).toEqual({ kind: 'stop' })
+    expect(server.requests).toHaveLength(1)
+    const sentPayload = server.requests[0] as {
+      contents: Array<{
+        role: string
+        parts: Array<{
+          functionCall?: { name: string; args: Record<string, unknown> }
+          thoughtSignature?: string
+        }>
+      }>
+    }
+    const modelTurn = sentPayload.contents.find(c => c.role === 'model')
+    expect(modelTurn?.parts[0]?.thoughtSignature).toBe(validSig)
+    expect(modelTurn?.parts[1]?.thoughtSignature).toBe('skip_thought_signature_validator')
   })
 })

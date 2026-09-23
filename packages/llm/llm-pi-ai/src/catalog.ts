@@ -863,7 +863,10 @@ export function resolveRouteModels(request: RouteCatalogRequest): RouteCatalog {
     // discloses nothing but ids still yields a serviceable route. The fallback
     // is a guess by construction, which is why it is a configurable route field
     // rather than a constant buried here.
-    const contextWindow = entry.contextWindow ?? base?.contextWindow ?? request.defaultContextWindow
+    let contextWindow = entry.contextWindow ?? base?.contextWindow ?? request.defaultContextWindow
+    if (entry.contextWindow === undefined && /gemma/i.test(entry.id)) {
+      contextWindow = Math.min(contextWindow, 16_000)
+    }
     if (!Number.isInteger(contextWindow) || contextWindow <= 0) {
       invalid(provider, `model "${entry.id}" contextWindow must be a positive integer`)
     }

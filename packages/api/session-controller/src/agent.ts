@@ -288,7 +288,12 @@ export class ApiSessionAgentController {
       get current(): AgentModelSelection {
         if (picked !== undefined) return picked
         const loggedHeader = agent.session.requestHeader()
-        if (loggedHeader === undefined) return defaultModel.currentSelection()
+        if (loggedHeader === undefined) {
+          if (projectionState.lastUsed !== null) {
+            return agentModelSelection(projectionState.lastUsed)
+          }
+          return defaultModel.currentSelection()
+        }
         const logged = loggedHeader.config
         return {
           provider: logged.provider,
@@ -427,7 +432,7 @@ export class ApiSessionAgentController {
     }
     return (await this.ctx.agents.resume({
       resumeSessionId: sessionId,
-      agentOptions: this.agentOptions(),
+      agentOptions: this.agentOptions(observation),
       setup: composition.setup,
     })).agent
   }
@@ -459,7 +464,7 @@ export class ApiSessionAgentController {
         const composition = await this.composeAgent(storedPreset)
         return (await this.ctx.agents.resume({
           resumeSessionId: sessionId,
-          agentOptions: this.agentOptions(),
+          agentOptions: this.agentOptions(observation),
           setup: composition.setup,
         })).agent
       } catch (error: unknown) {
@@ -485,7 +490,12 @@ export class ApiSessionAgentController {
     })).agent
   }
 
-  private agentOptions(): AgentOptions {
+  private agentOptions(observation?: SessionObservation): AgentOptions {
+    const modelSelection = observation?.projections?.values.modelSelection
+    const chosen = modelSelection?.next ?? modelSelection?.lastUsed
+    if (chosen) {
+      return { provider: chosen.provider, model: chosen.model }
+    }
     const { provider, model } = this.ctx.agentDefaultModel.currentSelection()
     return { provider, model }
   }

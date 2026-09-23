@@ -599,6 +599,53 @@ describe('toPiContext', () => {
     expectDegraded(replayState, `${field} does not match assistant source`)
   })
 
+  it('preserves thought signatures on tool calls when degrading to foreign', () => {
+    const onDegrade = vi.fn()
+    const context = toPiContext({
+      provider: 'google',
+      model: 'gemini-3.5-flash-lite',
+      messages: [createMessage({
+        role: 'assistant',
+        content: [{
+          type: 'tool-call',
+          id: ToolCallId('call_123'),
+          name: 'read',
+          arguments: '{}',
+        }],
+        source: {
+          kind: 'model',
+          provider: 'google',
+          model: 'gemini-3.5-flash-lite',
+          replayState: {
+            response: {
+              kind: 'pi-ai',
+              version: 2,
+              api: 'google-generative-ai',
+              provider: 'google',
+              model: 'gemini-3.1-flash-lite',
+              stopReason: 'toolUse',
+            },
+            blocks: [{ type: 'tool-call', thoughtSignature: 'valid-sig-base64' }],
+          },
+        },
+      })],
+    }, undefined, onDegrade)
+
+    expect(context.messages[0]).toMatchObject({
+      role: 'assistant',
+      api: 'dsh-foreign',
+      provider: 'google',
+      model: 'gemini-3.5-flash-lite',
+      content: [{
+        type: 'toolCall',
+        id: 'call_123',
+        name: 'read',
+        thoughtSignature: 'valid-sig-base64',
+      }],
+    })
+    expect(onDegrade).toHaveBeenCalledWith(expect.stringContaining('model does not match assistant source'))
+  })
+
   it.each([
     ['number state', 1, 'expected a replay envelope'],
     ['null state', null, 'expected a replay envelope'],

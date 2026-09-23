@@ -60,6 +60,7 @@ import type { AttachmentStore, ImageAttachmentRef } from '@deepseek-ai/dsh-attac
 import { idleWatchdog, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import type { ResolvedPiAiProviderProfile } from './config.ts'
 import { toPiContext } from './context.ts'
+import { repairGoogleThoughtSignatures } from './google-thought-signature.ts'
 import { parseProviderTokenLimit, toStreamChunks } from './stream.ts'
 import { TokenLimitStore } from './token-limit-store.ts'
 
@@ -409,6 +410,7 @@ export class PiAiAdapter extends LlmAdapter {
         // Profile headers are deployment-owned; attribution names are
         // Harness-owned and therefore win collisions.
         headers: requestHeaders(profile.headers),
+        onPayload: payload => repairGoogleThoughtSignatures(payload, model, context),
       })
       const iterator = toStreamChunks(events, model.contextWindow, options.signal)[Symbol.asyncIterator]()
       let exhausted = false

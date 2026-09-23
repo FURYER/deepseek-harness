@@ -407,11 +407,19 @@ export class ReactLoopAgent implements Agent {
         continue
       }
 
+      const replayResponse = assembler.replayState?.response as { provider?: unknown; model?: unknown } | undefined
+      const actualProvider = typeof replayResponse?.provider === 'string' && replayResponse.provider.length > 0
+        ? replayResponse.provider
+        : request.provider
+      const actualModel = typeof replayResponse?.model === 'string' && replayResponse.model.length > 0
+        ? replayResponse.model
+        : request.model
+
       const message = createAssistantMessage({
         content: assembler.blocks(),
         source: {
-          provider: request.provider,
-          model: request.model,
+          provider: actualProvider,
+          model: actualModel,
           ...assembler.replayState !== undefined ? { replayState: assembler.replayState } : {},
         },
       })

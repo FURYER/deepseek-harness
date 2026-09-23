@@ -83,7 +83,7 @@ export interface CardActions {
   /** Stage a clear, so saving lets the field re-inherit the composition layer. */
   resetField: (field: string) => void
   /** Toggle a boolean field. */
-  toggle?: (field: string) => void
+  toggle?: (field: string, defaultTrue?: boolean) => void
   /** Write every staged edit, then re-seed from what the Host accepted. */
   save: () => void
   /** Drop every staged edit. */

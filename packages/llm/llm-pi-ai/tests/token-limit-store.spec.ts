@@ -4,13 +4,8 @@ import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { PiAiAdapter } from '../src/adapter.ts'
 import { resolveProfiles } from '../src/config.ts'
-import {
-  defaultTokenLimitsPath,
-  loadTokenLimitsSync,
-  parseTokenLimits,
-  saveTokenLimits,
-  TokenLimitStore,
-} from '../src/token-limit-store.ts'
+import { defaultTokenLimitsPath, loadTokenLimitsSync, parseTokenLimits, saveTokenLimits, TokenLimitStore } from '../src/token-limit-store.ts'
+import { memoryAuth } from './auth-double.ts'
 
 describe('token-limit-store', () => {
   let tempDir: string
@@ -106,23 +101,14 @@ describe('token-limit-store', () => {
     const adapter = new PiAiAdapter({
       profiles: () => resolveProfiles({ google: { apiKeyEnv: 'GOOGLE_API_KEY' } }),
       resolveApiKey: () => Promise.resolve('test-key'),
-      auth: {
-        credentials: {
-          get: () => Promise.resolve(undefined),
-          set: () => Promise.resolve(),
-          delete: () => Promise.resolve(),
-        },
-        authContext: {
-          get: () => Promise.resolve(undefined),
-        },
-      },
+      auth: memoryAuth(),
       tokenLimitsPath: limitsFile,
     })
 
     const prepared = await adapter.prepareCall('google', 'gemini-3.5-flash-lite')
-    expect(prepared.model.context.contextWindow).toBe(250000)
+    expect(prepared.model.context?.contextWindow).toBe(250000)
 
     const resolved = await adapter.resolveModel('google', 'gemini-3.5-flash-lite')
-    expect(resolved.context.contextWindow).toBe(250000)
+    expect(resolved.context?.contextWindow).toBe(250000)
   })
 })

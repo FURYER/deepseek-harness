@@ -13,7 +13,7 @@ export const LLM_FALLBACK_NS = 'llm-fallback'
 export interface FallbackModelItem {
   provider: string
   model: string
-  reasoningEffort?: string
+  reasoningEffort?: string | undefined
 }
 
 export interface LlmFallbackSettings {
@@ -45,6 +45,7 @@ export class LlmFallbackCardController {
   private catalogGroups: readonly ModelProviderGroup[] = []
   private catalogLoading = false
   private draftModels: FallbackModelItem[] | null = null
+  private isSaving = false
 
   constructor(
     private readonly scope: SettingsScope<LlmFallbackSettings>,
@@ -56,6 +57,9 @@ export class LlmFallbackCardController {
     ])
     this.store = createSnapshotStore<LlmFallbackCardState>(this.projection())
     this.form.bind(() => {
+      this.publish()
+    })
+    scope.subscribe(() => {
       this.publish()
     })
     void this.loadCatalog()
@@ -85,8 +89,10 @@ export class LlmFallbackCardController {
     if (this.draftModels !== null) {
       return this.draftModels
     }
-    const current = this.scope.getSnapshot().current
-    return current?.fallbackModels ? [...current.fallbackModels] : []
+    const snap = this.scope.getSnapshot()
+    const stored = (snap.user as LlmFallbackSettings | undefined)?.fallbackModels
+      ?? snap.value?.fallbackModels
+    return Array.isArray(stored) ? [...stored] : []
   }
 
   private projection(): LlmFallbackCardState {
@@ -97,6 +103,7 @@ export class LlmFallbackCardController {
     return {
       ...shell,
       dirty: isDirty,
+      saving: shell.saving || this.isSaving,
       enabled: this.form.boolField('enabled', true),
       defaultCooldownMs: this.form.field('defaultCooldownMs'),
       fallbackModels: models,
@@ -128,12 +135,18 @@ export class LlmFallbackCardController {
   }
 
   async save(): Promise<void> {
-    if (this.draftModels !== null) {
-      await this.scope.set('fallbackModels', this.draftModels)
-      this.draftModels = null
-    }
-    await this.form.save()
+    this.isSaving = true
     this.publish()
+    try {
+      if (this.draftModels !== null) {
+        await this.scope.set('fallbackModels', this.draftModels)
+        this.draftModels = null
+      }
+      await this.form.save()
+    } finally {
+      this.isSaving = false
+      this.publish()
+    }
   }
 
   discard(): void {

@@ -23,7 +23,11 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import { AgentLoopCard } from './AgentLoopCard.tsx'
 import { BashCard } from './BashCard.tsx'
 import { ConfigurablePluginsTab } from './ConfigurablePluginsTab.tsx'
-import { PluginsSettingsSection } from './PluginsSettingsSection.tsx'
+import {
+  PluginsSettingsSection,
+  type PluginsSettingsSectionInjected,
+  type PluginsSettingsTabEntry,
+} from './PluginsSettingsSection.tsx'
 import { SubagentModelSelectionCard } from './SubagentModelSelectionCard.tsx'
 import { WebSearchCard } from './WebSearchCard.tsx'
 import { SoundNotificationsCard } from './SoundNotificationsCard.tsx'
@@ -143,7 +147,7 @@ export function apply(ctx: ClientContext): void {
           }
           return tabs
         },
-        subscribe: (listener) => {
+        subscribe: (listener: () => void) => {
           const offLedger = ctx.slots.subscribe('settings.plugins.tab', listener)
           const offLocale = ctx.locale.subscribe(listener)
           return () => {

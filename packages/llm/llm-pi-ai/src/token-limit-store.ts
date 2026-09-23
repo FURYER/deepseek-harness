@@ -61,9 +61,9 @@ export function parseTokenLimits(text: string): Map<string, number> | undefined 
 export function loadTokenLimitsSync(path: string): Map<string, number> {
   try {
     const text = readFileSync(path, 'utf8')
-    return parseTokenLimits(text) ?? new Map()
+    return parseTokenLimits(text) ?? new Map<string, number>()
   } catch {
-    return new Map()
+    return new Map<string, number>()
   }
 }
 
