@@ -152,17 +152,29 @@ function readReplayState(value: unknown): PiAiReplayState {
 /** Convert provider-neutral blocks without trusting them as same-model replay. */
 function foreignAssistant(message: HarnessAssistantMessage): AssistantMessage {
   const source = message.source
+  const envelope = typeof source.replayState === 'object' && source.replayState !== null
+    ? (source.replayState as { blocks?: unknown[] })
+    : undefined
+  const replayBlocks = Array.isArray(envelope?.blocks) ? envelope.blocks : undefined
   const content: AssistantMessage['content'] = []
-  for (const block of message.content) {
+  for (const [index, block] of message.content.entries()) {
     switch (block.type) {
       case 'text': content.push({ type: 'text', text: block.text }); break
       case 'reasoning': content.push({ type: 'thinking', thinking: block.text }); break
-      case 'tool-call': content.push({
-        type: 'toolCall',
-        id: block.id,
-        name: block.name,
-        arguments: parseArguments(block.arguments),
-      }); break
+      case 'tool-call': {
+        const replay = replayBlocks?.[index] as Record<string, unknown> | undefined
+        const thoughtSignature = replay?.type === 'tool-call' && typeof replay.thoughtSignature === 'string' && replay.thoughtSignature.length > 0
+          ? replay.thoughtSignature
+          : undefined
+        content.push({
+          type: 'toolCall',
+          id: block.id,
+          name: block.name,
+          arguments: parseArguments(block.arguments),
+          ...thoughtSignature !== undefined ? { thoughtSignature } : {},
+        })
+        break
+      }
       case 'image':
         throw new LlmError('pi-ai chat history cannot represent structured assistant image output', 'UNSUPPORTED_CONTENT')
       default:
